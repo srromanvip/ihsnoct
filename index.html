@@ -75,6 +75,89 @@ event.preventDefault();
 form.requestSubmit();
 }
 });
+</script><script>
+const form = document.getElementById('chatForm');
+const input = document.getElementById('messageInput');
+const messages = document.getElementById('messages');
+const STORAGE_KEY = 'ihsnoct_messages_v1';
+
+let savedMessages = [];
+try {
+  const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  if (Array.isArray(data)) {
+    savedMessages = data.filter(item =>
+      item &&
+      typeof item.text === 'string' &&
+      typeof item.time === 'string'
+    );
+  }
+} catch (error) {
+  savedMessages = [];
+}
+
+function renderMessage(item) {
+  const welcome = messages.querySelector('.welcome');
+  if (welcome) welcome.remove();
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+
+  const p = document.createElement('p');
+  p.textContent = item.text;
+
+  const time = document.createElement('div');
+  time.className = 'time';
+  time.textContent = item.time;
+
+  bubble.appendChild(p);
+  bubble.appendChild(time);
+  messages.appendChild(bubble);
+}
+
+savedMessages.forEach(renderMessage);
+messages.scrollTop = messages.scrollHeight;
+
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+
+form.addEventListener('submit', event => {
+  event.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+
+  const item = {
+    text,
+    time: new Date().toLocaleTimeString('bn-BD', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  };
+
+  savedMessages.push(item);
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMessages));
+  } catch (error) {
+    savedMessages.pop();
+    alert('মেসেজ সংরক্ষণ করা যায়নি। ব্রাউজারের স্টোরেজ পরীক্ষা করুন।');
+    return;
+  }
+
+  renderMessage(item);
+  input.value = '';
+  input.style.height = 'auto';
+  messages.scrollTop = messages.scrollHeight;
+  input.focus();
+});
+
+input.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    form.requestSubmit();
+  }
+});
 </script>
 </body>
 </html>
