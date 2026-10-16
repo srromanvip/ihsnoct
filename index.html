@@ -8,156 +8,96 @@
 *{box-sizing:border-box}
 body{margin:0;background:#0c1320;color:#f4f7fb;font-family:Arial,sans-serif}
 .app{max-width:650px;height:100dvh;margin:auto;background:#131e30;display:flex;flex-direction:column}
-header{padding:18px;background:#1b2b40;border-bottom:1px solid #304158;display:flex;align-items:center;gap:12px}
+header{padding:18px;background:#1b2b40;display:flex;align-items:center;gap:12px}
 .logo{width:45px;height:45px;border-radius:50%;display:grid;place-items:center;background:#70e0bd;color:#102b2a;font-weight:bold;font-size:21px}
 .brand{font-size:22px;font-weight:bold;color:#70e0bd}
 .status{font-size:12px;color:#b5c6d5;margin-top:5px}
-h2{font-size:16px;margin:0}
 .notice{margin:12px 14px 0;padding:10px;border-radius:10px;background:#203248;color:#b8cadb;font-size:12px;text-align:center}
 .messages{flex:1;overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:12px}
 .welcome{text-align:center;color:#aebfd1;font-size:13px;margin:12px 0}
 .bubble{align-self:flex-end;max-width:85%;background:#176b60;padding:11px 13px;border-radius:15px 15px 4px 15px;overflow-wrap:anywhere}
 .bubble p{margin:0;white-space:pre-wrap;line-height:1.45}
 .time{text-align:right;color:#d0e6e0;font-size:10px;margin-top:6px}
-.composer{padding:12px;display:flex;gap:8px;align-items:flex-end;background:#1b2b40;border-top:1px solid #304158}
-textarea{flex:1;resize:none;max-height:120px;min-height:44px;border:1px solid #3c5068;border-radius:14px;background:#101a29;color:white;padding:13px;font:16px Arial;outline:none}
-textarea:focus{border-color:#70e0bd}
-button{width:48px;height:46px;border:0;border-radius:14px;background:#70e0bd;color:#102b2a;font-size:21px;font-weight:bold;cursor:pointer}
-button:active{transform:scale(.96)}
+.composer{padding:12px;display:flex;gap:8px;align-items:flex-end;background:#1b2b40}
+textarea{flex:1;resize:none;max-height:120px;min-height:44px;border:1px solid #3c5068;border-radius:14px;background:#101a29;color:white;padding:13px;font:16px Arial}
+button{border:0;border-radius:12px;cursor:pointer}
+#send{width:48px;height:46px;background:#70e0bd;color:#102b2a;font-size:21px}
+#clear{padding:8px 12px;background:#34465c;color:#fff}
+.tools{display:flex;justify-content:center;padding:5px 12px 12px;background:#1b2b40}
 footer{text-align:center;font-size:11px;color:#8295aa;padding:0 8px 9px;background:#1b2b40}
 </style>
 </head>
 <body>
 <div class="app">
-<header>
-<div class="logo">I</div>
-<div><div class="brand">IHSNOCT</div><div class="status">● Your personal chat demo</div></div>
-</header>
-<div class="notice">এটি একটি ডেমো। আপনার মেসেজ এই ব্রাউজারেই দেখা যাবে।</div>
-<main class="messages" id="messages">
-<div class="welcome">Welcome to IHSNOCT 👋<br>আপনার প্রথম মেসেজটি লিখুন!</div>
-</main>
-<form class="composer" id="chatForm">
-<textarea id="messageInput" placeholder="মেসেজ লিখুন..." rows="1" aria-label="মেসেজ লিখুন"></textarea>
-<button type="submit" aria-label="Send message">➤</button>
-</form>
+<header><div class="logo">I</div><div><div class="brand">IHSNOCT</div><div class="status">Personal chat demo</div></div></header>
+<div class="notice" id="status">আপনার মেসেজ এই ব্রাউজারে সংরক্ষিত হবে।</div>
+<main class="messages" id="messages"><div class="welcome">Welcome to IHSNOCT 👋<br>আপনার প্রথম মেসেজটি লিখুন!</div></main>
+<form class="composer" id="chatForm"><textarea id="messageInput" placeholder="মেসেজ লিখুন..." rows="1"></textarea><button id="send" type="submit">➤</button></form>
+<div class="tools"><button id="clear" type="button">সব মেসেজ মুছুন</button></div>
 <footer>Enter = Send · Shift + Enter = নতুন লাইন</footer>
 </div>
 <script>
+(function(){
+const KEY='ihsnoct_saved_messages_v2';
 const form=document.getElementById('chatForm');
 const input=document.getElementById('messageInput');
 const messages=document.getElementById('messages');
-input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,120)+'px'});
-form.addEventListener('submit',function(event){
-event.preventDefault();
-const text=input.value.trim();
-if(!text)return;
-const welcome=messages.querySelector('.welcome');
-if(welcome)welcome.remove();
+const status=document.getElementById('status');
+let items=[];
+function load(){
+try{
+const value=localStorage.getItem(KEY);
+const parsed=value?JSON.parse(value):[];
+items=Array.isArray(parsed)?parsed.filter(x=>x&&typeof x.text==='string'&&typeof x.time==='string'):[];
+status.textContent='সংরক্ষিত মেসেজ: '+items.length;
+}catch(e){items=[];status.textContent='ব্রাউজারের স্টোরেজ পড়া যাচ্ছে না।';}
+}
+function render(){
+messages.replaceChildren();
+if(!items.length){
+const welcome=document.createElement('div');
+welcome.className='welcome';
+welcome.innerHTML='Welcome to IHSNOCT 👋<br>আপনার প্রথম মেসেজটি লিখুন!';
+messages.appendChild(welcome);
+}else{
+items.forEach(item=>{
 const bubble=document.createElement('div');
 bubble.className='bubble';
 const p=document.createElement('p');
-p.textContent=text;
+p.textContent=item.text;
 const time=document.createElement('div');
 time.className='time';
-time.textContent=new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'});
-bubble.appendChild(p);
-bubble.appendChild(time);
+time.textContent=item.time;
+bubble.append(p,time);
 messages.appendChild(bubble);
+});
+}
+messages.scrollTop=messages.scrollHeight;
+status.textContent='সংরক্ষিত মেসেজ: '+items.length;
+}
+function save(){
+try{localStorage.setItem(KEY,JSON.stringify(items));return true;}
+catch(e){status.textContent='সংরক্ষণ ব্যর্থ: ব্রাউজারের স্টোরেজ পরীক্ষা করুন।';return false;}
+}
+form.addEventListener('submit',function(e){
+e.preventDefault();
+const text=input.value.trim();
+if(!text)return;
+items.push({text:text,time:new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'})});
+if(!save()){items.pop();return;}
 input.value='';
 input.style.height='auto';
-messages.scrollTop=messages.scrollHeight;
+render();
 input.focus();
 });
-input.addEventListener('keydown',function(event){
-if(event.key==='Enter'&&!event.shiftKey){
-event.preventDefault();
-form.requestSubmit();
-}
+input.addEventListener('input',function(){input.style.height='auto';input.style.height=Math.min(input.scrollHeight,120)+'px';});
+input.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();form.requestSubmit();}});
+document.getElementById('clear').addEventListener('click',function(){
+if(confirm('সব সংরক্ষিত মেসেজ মুছবেন?')){items=[];if(save())render();}
 });
-</script><script>
-const form = document.getElementById('chatForm');
-const input = document.getElementById('messageInput');
-const messages = document.getElementById('messages');
-const STORAGE_KEY = 'ihsnoct_messages_v1';
-
-let savedMessages = [];
-try {
-  const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  if (Array.isArray(data)) {
-    savedMessages = data.filter(item =>
-      item &&
-      typeof item.text === 'string' &&
-      typeof item.time === 'string'
-    );
-  }
-} catch (error) {
-  savedMessages = [];
-}
-
-function renderMessage(item) {
-  const welcome = messages.querySelector('.welcome');
-  if (welcome) welcome.remove();
-
-  const bubble = document.createElement('div');
-  bubble.className = 'bubble';
-
-  const p = document.createElement('p');
-  p.textContent = item.text;
-
-  const time = document.createElement('div');
-  time.className = 'time';
-  time.textContent = item.time;
-
-  bubble.appendChild(p);
-  bubble.appendChild(time);
-  messages.appendChild(bubble);
-}
-
-savedMessages.forEach(renderMessage);
-messages.scrollTop = messages.scrollHeight;
-
-input.addEventListener('input', () => {
-  input.style.height = 'auto';
-  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-});
-
-form.addEventListener('submit', event => {
-  event.preventDefault();
-  const text = input.value.trim();
-  if (!text) return;
-
-  const item = {
-    text,
-    time: new Date().toLocaleTimeString('bn-BD', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  };
-
-  savedMessages.push(item);
-
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMessages));
-  } catch (error) {
-    savedMessages.pop();
-    alert('মেসেজ সংরক্ষণ করা যায়নি। ব্রাউজারের স্টোরেজ পরীক্ষা করুন।');
-    return;
-  }
-
-  renderMessage(item);
-  input.value = '';
-  input.style.height = 'auto';
-  messages.scrollTop = messages.scrollHeight;
-  input.focus();
-});
-
-input.addEventListener('keydown', event => {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    form.requestSubmit();
-  }
-});
+load();
+render();
+})();
 </script>
 </body>
 </html>
